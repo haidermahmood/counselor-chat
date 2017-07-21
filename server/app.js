@@ -219,6 +219,34 @@ db.users = new Datastore({ filename: 'db/users.db', autoload: true });
  | GET /api/friends
  |--------------------------------------------------------------------------
 */
+app.get('/api/friends2', ensureAuthenticated,function(req, res) {
+  var accessTokenUrl = 'https://zero-balance-service.herokuapp.com/api/v1/users/get_counselors/';
+
+  var headers = {
+    "Authorization": req.header('Authorization')
+
+  };
+  console.log("body janujanujau", req.header('Authorization'));
+  request.get({ url: accessTokenUrl, headers : headers}, function(err, response, body) {
+    console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>> friends2")
+      var friends =  JSON.parse(body);
+      //console.log("body", friends, userInfo);
+
+      var friends = _.map(friends, function(friend){
+        return _.merge(friend, { direct_conversation_channel: getDirectConversationChannelName(friend.id, userInfo._id) })
+      });
+      Q.all([
+              createOwnUserConversationsChannelGroup(userInfo, friends),
+              createOwnUserFriendsPresenceChannelGroup(userInfo, friends),
+              allowUserToPublishToConversationChannels(userInfo, friends)
+            ]).then(function(){
+                res.status(200).send(friends);
+
+            }).catch(function(){
+                 res.status(500).send();
+            })
+  })
+});
   app.get('/api/friends1', ensureAuthenticated,function(req, res) {
     var accessTokenUrl = 'https://zero-balance-service.herokuapp.com/api/v1/users/get_chat_clients/';
 
@@ -228,7 +256,7 @@ db.users = new Datastore({ filename: 'db/users.db', autoload: true });
     };
     console.log("body janujanujau", req.header('Authorization'));
     request.get({ url: accessTokenUrl, headers : headers}, function(err, response, body) {
-
+      console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>> friends1")
         var friends =  JSON.parse(body);
         //console.log("body", friends, userInfo);
 
@@ -246,7 +274,7 @@ db.users = new Datastore({ filename: 'db/users.db', autoload: true });
                    res.status(500).send();
               })
     })
-  })
+  });
   app.get('/api/friends', ensureAuthenticated, function(req, res) {
 
     var github_client = github.client(req.user.oauth_token);
